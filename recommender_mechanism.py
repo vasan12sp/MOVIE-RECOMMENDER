@@ -7,6 +7,7 @@ import re
 import time
 from textblob import TextBlob
 import streamlit as st
+import concurrent.futures
 
 # Function to load and preprocess data
 @st.cache_data
@@ -72,13 +73,20 @@ def recommend_similar_movies(df, similarity, movie_name, top_n=10):
         distance = sorted(enumerate(similarity[index]), reverse=True, key=lambda x: x[1])
 
         recommended_movies = []
-        for i in distance[1:top_n+1]:
-            movie_id = df.iloc[i[0]]['movie_id']
-            sentiment_score = clean_and_analyze_sentiment(scrape_top_reviews(movie_id))
-            rating = df.iloc[i[0]]['rating']  # Fetch movie rating
-            combined_score = (rating * 5) + (sentiment_score * 50)
-            recommended_movies.append((movie_id, combined_score, df.iloc[i[0]]['movie_name']))
-
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit scraping reviews tasks for all movies
+            future_to_reviews = {executor.submit(scrape_top_reviews, df.iloc[i[0]]['movie_id']): i for i in distance[1:top_n+1]}
+            for future in concurrent.futures.as_completed(future_to_reviews):
+                index = future_to_reviews[future]
+                try:
+                    reviews = future.result()
+                    sentiment_score = clean_and_analyze_sentiment(reviews)
+                    rating = df.iloc[index[0]]['rating']  # Fetch movie rating
+                    combined_score = (rating * 5) + (sentiment_score * 50)
+                    recommended_movies.append((df.iloc[index[0]]['movie_id'], combined_score, df.iloc[index[0]]['movie_name']))
+                except Exception as exc:
+                    print(f"Error fetching reviews: {exc}")
+        
         # Sort recommended movies based on combined score
         recommended_movies.sort(key=lambda x: x[1], reverse=True)
         
