@@ -10,7 +10,7 @@ def get_user_input_and_recommend(df, similarity):
     if user_input:
         recommended_movies = recommend_similar_movies(df, similarity, user_input)
         if recommended_movies:
-            st.write("\nTop 10 Similar Movies:")
+            st.write("\nRecommended Movies for you:")
 
             for movie_id, combined_score, movie_name in recommended_movies:
                 imdb_url = f"https://www.imdb.com/title/{movie_id}/"
