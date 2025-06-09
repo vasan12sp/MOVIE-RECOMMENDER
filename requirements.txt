@@ -10,7 +10,7 @@ py==1.8.1
 
 python-language-server==0.31.7
 
-requests==2.31.0
+requests==2.32.2
 requests-oauthlib==2.0.0
 
 scikit-image==0.16.2
